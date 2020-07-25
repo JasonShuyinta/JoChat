@@ -39,17 +39,19 @@ main {
     }] {
         log@Server2Monitor(global.count + " Nome del nodo : "
         +global.listaNodi[i].nomeNodo + " - Numero della porta: "
-        +global.listaNodi[i].numeroPorta )
+        +global.listaNodi[i].numeroPorta)
       }
 
-      [ getPortaDestinatario( nomeDestinatario ) ( numeroPortaDestinatario ) {
+      [ getInfoDestinatario( nomeDestinatario ) ( infoDestinatario ) {
         synchronized( token ) {
           for( i = 0, i < #global.listaNodi, i++) {
             if( nomeDestinatario == global.listaNodi[i].nomeNodo ) {
               numeroPortaTmp = global.listaNodi[i].numeroPorta
+              chiavepubblicaTmp = global.listaNodi[i].chiavePub
             }
           }
-          numeroPortaDestinatario << numeroPortaTmp
+          infoDestinatario.numeroPorta << numeroPortaTmp
+          infoDestinatario.chiavePub << chiavepubblicaTmp
         }
       }]
 
@@ -82,14 +84,14 @@ main {
           listaNodiAttivi << listaNodiTemp
         }
       }]
-    
+
 
       [ addChat( request )( response ) {
         if ( !is_defined( global.chat.( request.chat_name ) ) ) {
             global.chat.( request.chat_name ) = true
         }
         ;
-        /* check if the chat already exists and the username is already registered*/ 
+        /* check if the chat already exists and the username is already registered*/
         if ( !is_defined( global.chat.( request.chat_name ).users.( request.username ) )) {
             global.chat.( request.chat_name ).users.( request.username ).location = request.location;
             /* new is a jolie primitive for creating a fresh token */
@@ -113,7 +115,7 @@ main {
         }
       }
       if( esitoTmp == "true") {
-          global.listaChatGruppo[#global.listaChatGruppo] << nomeChat 
+          global.listaChatGruppo[#global.listaChatGruppo] << nomeChat
         }
       esito << esitoTmp
     }
@@ -164,6 +166,6 @@ main {
       listaPartecipantiGruppo.numeroPorta << global.chat.( nomeGruppo ).location
     } ]
 
-    
-    
+
+
 }

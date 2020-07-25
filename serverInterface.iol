@@ -14,6 +14,7 @@ type Chat: void {
 type joinRequest: void {
     .nomeNodo: string
     .numeroPorta: string
+    .chiavePub: string
 }
 
 type joinResponse: void {
@@ -54,13 +55,22 @@ type Messaggio: void {
 type Informazioni: void {
     .nomeMittente: string
     .nomeDestinatario: string
-    .msg: string
+    .msg: raw
 }
 
 type listaPartecipanti: void {
     .numeroPorta*: string
 }
 
+type infoDestinatario: void {
+  .numeroPorta: string
+  .chiavePub: string
+}
+
+type infoPrivata: void {
+  .valD: string
+  .valN: string
+}
 
 interface ServerInterface {
 RequestResponse:
@@ -69,7 +79,7 @@ RequestResponse:
     addChat( AddChatRequest )( AddChatResponse ),
     addNameChat( string )( string ),
     checkEsistenzaGruppo( string ) ( string ),
-    getPortaDestinatario( string )( string ),
+    getInfoDestinatario( string )( infoDestinatario ),
     getChat( void )( string ),
     sendInfoPrivate( Info )( void ),
     sendNomeGruppo( string )( listaPartecipanti ),
@@ -78,5 +88,6 @@ OneWay:
     log(string),
     setMessage( SetMessageRequest ),
     sendChat( string ),
-    invioPrivato( Informazioni )
+    invioPrivato( Informazioni ),
+    SaveKey( infoPrivata )
 }

@@ -4,29 +4,9 @@ include "console.iol"
 include "runtime.iol"
 include "string_utils.iol"
 
-type cifraMsg: void{
-  .msg:string
-  .valoreN:string
-  .valoreE:string
-}
-
-type risposta: void{
-  .messCifrato: raw
-}
-
-type operazioneCifr: void{
-  .risposta: raw
-}
-
-interface PrivataInterface {
+interface AsymmetricInterface {
   RequestResponse:
-  generatoreChiavi(void)(string),
-  splitKeysPriv(string)(string),
-  splitKeysPub(string)(string),
-  splitKeysNtoE(string)(string),
-  splitKeysNtoD(string)(string),
-  splitKeysN(string)(string),
-  encrypt(cifraMsg)(operazioneCifr)
+  generatoreChiavi( void )( string )
 }
 
 outputPort Nodo2Server {
@@ -47,8 +27,8 @@ outputPort Server2Nodo {
 
 
 
-outputPort Privata {
-    Interfaces: PrivataInterface
+outputPort Asymmetric {
+    Interfaces: AsymmetricInterface
 }
 
 init
@@ -71,7 +51,7 @@ init
 }
 
 embedded {
-    Java:     "lib.Privata" in Privata
+    Java:  "esempio.Asymmetric" in Asymmetric
 }
 
 
@@ -89,21 +69,22 @@ main {
 
     //Server2Nodo.location="socket://localhost:"+request.numeroPorta+"/";
 
-
-
-    generatoreChiavi@Privata()(chiavi);
-    splitKeysPriv@Privata(chiavi)(chiavePrivata);
-    splitKeysPub@Privata(chiavi)(chiavePubblica);
-    splitKeysNtoE@Privata(chiavePubblica)(valoreE);
-    splitKeysNtoD@Privata(chiavePrivata)(valoreD);
-    splitKeysN@Privata(chiavePubblica)(valoreN);
-    request.chiavePub = chiavePubblica;
-
-    infoPrivata.valD = valoreD;
-    infoPrivata.valN = valoreN;
-    Nodo2Nodo.location = "socket://localhost:"+args[1];
-    SaveKey@Nodo2Nodo(infoPrivata)
     join@Nodo2Server( request )( response );
+
+    generatoreChiavi@Asymmetric()(chiavi);
+    println@Console(chiavi)();
+
+
+
+
+    Mia_Khalifa ='.';
+    Mia_Khalifa.word = chiavi;
+
+    indexOf@StringUtils( Mia_Khalifa )( indice );
+    println@Console(indice)();
+
+
+
     println@Console( response )(  );
 
     while (opzione != "6") {
@@ -200,6 +181,12 @@ main {
         }
     }
 
+
+
+
+
+
+
     //"Premi 4 per accedere a una chat di gruppo"
     else if ( opzione == "4") {
       //inserire firma digitale
@@ -272,31 +259,21 @@ main {
         exists@File( nomeNodoDestinatario )( exists )
       };
 
-        //abbiamo ottenuto la porta e la chiave pubblica
-        getInfoDestinatario@Nodo2Server( nomeNodoDestinatario )( infoDestinatario );
-        //println@Console( infoDestinatario.chiavePub )(  );
-        //println@Console( infoDestinatario.numeroPorta )(  )
+        //abbiamo ottenuto la porta
+        getPortaDestinatario@Nodo2Server( nomeNodoDestinatario )( numeroPortaDestinatario );
+        //println@Console( numeroPortaDestinatario )(  )
         //fine
-        splitKeysNtoE@Privata(infoDestinatario.chiavePub)(valoreEDest);
-        splitKeysN@Privata(infoDestinatario.chiavePub)(valoreNDest);
-
-        cifraMsg.valoreE=valoreEDest;
-        cifraMsg.valoreN=valoreNDest;
 
         println@Console( "Inserisci il messaggio (per uscire dalla chat inviare '$'): " )(  )
-        mySocketLocation = "socket://localhost:"+infoDestinatario.numeroPorta;
+        mySocketLocation = "socket://localhost:"+numeroPortaDestinatario;
         Nodo2Nodo.location = mySocketLocation;
         in( messaggio )
-
         while ( messaggio != "$") {
-          cifraMsg.msg=messaggio;
-          encrypt@Privata(cifraMsg)(messaggioCifrato)                 //messaggio criptato
-          informazioni.nomeMittente = args[0];                        // nome del mittente
-          informazioni.nomeDestinatario = nomeNodoDestinatario;       // nome del destinatario
-          informazioni.msg = messaggioCifrato.risposta;
-
-          invioPrivato@Nodo2Nodo( informazioni );
-          in( messaggio )
+        informazioni.nomeMittente = args[0];
+        informazioni.nomeDestinatario = nomeNodoDestinatario;
+        informazioni.msg = messaggio;
+        invioPrivato@Nodo2Nodo( informazioni );
+        in( messaggio )
         }
     }
   }
