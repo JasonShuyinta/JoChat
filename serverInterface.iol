@@ -20,7 +20,7 @@ type joinRequest: void {
 type joinResponse: void {
     .message?: string
 }
-
+/*
 type AddChatRequest: void {
     .chat_name: string
     .username: string
@@ -34,11 +34,16 @@ type ChatSendMessageRequest: void {
     .token: string
     .message: string
 }
-
+*/
 type SetMessageRequest: void {
     .message: string
     .chat_name: string
     .username: string
+}
+
+type Dati:void{
+  .numeroPorta: string
+  .nomeChat: string
 }
 
 type Info: void {
@@ -55,7 +60,7 @@ type Messaggio: void {
 type Informazioni: void {
     .nomeMittente: string
     .nomeDestinatario: string
-    .msg: raw
+    .msg: string
 }
 
 type listaPartecipanti: void {
@@ -67,27 +72,47 @@ type infoDestinatario: void {
   .chiavePub: string
 }
 
-type infoPrivata: void {
-  .valD: string
-  .valN: string
+
+type gruppo: void {
+  .nome: string
+  .porta: string
+}
+
+type porte: void {
+  .numeroPortaGruppo*: string
+}
+
+type infoChatGruppo: void {
+    .nomeChat: string
+    .mittente: string
+    .messaggio: string
+    .firma: string
+    .chiavePub: string
 }
 
 interface ServerInterface {
 RequestResponse:
     join( joinRequest ) ( joinResponse ),
     getNodi( string ) ( string ),
-    addChat( AddChatRequest )( AddChatResponse ),
+  //  addChat( AddChatRequest )( AddChatResponse ),
     addNameChat( string )( string ),
     checkEsistenzaGruppo( string ) ( string ),
     getInfoDestinatario( string )( infoDestinatario ),
     getChat( void )( string ),
     sendInfoPrivate( Info )( void ),
     sendNomeGruppo( string )( listaPartecipanti ),
-    sendMessage( ChatSendMessageRequest )( void ) throws TokenNotValid
+  //  sendMessage( ChatSendMessageRequest )( void ) throws TokenNotValid,
+    richiestaPorteGruppo ( string ) (porte)
 OneWay:
     log(string),
     setMessage( SetMessageRequest ),
     sendChat( string ),
     invioPrivato( Informazioni ),
-    SaveKey( infoPrivata )
+    SaveKey( string ),
+    gestioneGruppo( gruppo ),
+    gestioneGruppo2( gruppo ),
+    invioChatGruppo( infoChatGruppo ),
+    offline(string),
+    uscitaGruppo(Dati),
+    deleteNodo(Nodi)
 }

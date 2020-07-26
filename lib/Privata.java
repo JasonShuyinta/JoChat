@@ -1,114 +1,147 @@
 package lib;
-import java.io.DataInputStream;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.util.Random;
 import jolie.runtime.JavaService;
 import jolie.runtime.Value;
 import java.io.*;
 import java.util.*;
 import java.lang.String;
 import jolie.runtime.*;
+import java.util.Base64;
+import java.security.*;
+import java.lang.Exception;
+import java.security.spec.X509EncodedKeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import java.security.spec.InvalidKeySpecException;
+import javax.crypto.BadPaddingException;
+import javax.crypto.NoSuchPaddingException;
 
 
 public class Privata extends JavaService
 {
-    private BigInteger p;
-    private BigInteger q;
-    private BigInteger N;
-    private BigInteger phi;
-    private BigInteger e;
-    private BigInteger d;
-    private int        bitlength = 1024;
-    private Random     r;
 
-/*
-    public ChatPrivata(BigInteger e, BigInteger d, BigInteger N)
-    {
-        this.e = e;
-        this.d = d;
-        this.N = N;
-    }
-*/
+  public static KeyPair generateRSAKkeyPair() throws Exception
+	{
+		SecureRandom secureRandom = new SecureRandom();
 
-    public String generatoreChiavi()
-    {
-      r = new Random();
-      p = BigInteger.probablePrime(bitlength, r);
-      q = BigInteger.probablePrime(bitlength, r);
-      N = p.multiply(q);
-      phi = p.subtract(BigInteger.ONE).multiply(q.subtract(BigInteger.ONE));
-      e = BigInteger.probablePrime(bitlength / 2, r);
-      while (phi.gcd(e).compareTo(BigInteger.ONE) > 0 && e.compareTo(phi) < 0)
-      {
-          e.add(BigInteger.ONE);
-      }
-      d = e.modInverse(phi);
+		KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
 
-      String stringaN = String.valueOf(N);
-      String stringaD = String.valueOf(d);
-      String stringaE = String.valueOf(e);
-      String chiavePrivata = stringaN+"/"+stringaD;
-      String chiavePubblica = stringaN+"/"+stringaE;
-      String coppiaChiavi= chiavePrivata+"-"+chiavePubblica;
-      return coppiaChiavi;
+		keyPairGenerator.initialize( 2048, secureRandom);
+
+		return keyPairGenerator.generateKeyPair();
+
     }
 
-    public static String splitKeysN(String chiave){
-     String[] keysArray = chiave.split("/");
-     String valoreN = keysArray[0];
-     return valoreN;
-   }
-    public static String splitKeysNtoE(String chiavePubblica){
-			String[] keysArray = chiavePubblica.split("/");
-			String valoreE = keysArray[1];
-			return valoreE;
-		}
+    public static Value generatoreChiavi() {
+      Value v= Value.create();
 
-    public static String splitKeysNtoD(String chiavePrivata){
-			String[] keysArray = chiavePrivata.split("/");
-			String valoreD = keysArray[1];
-			return valoreD;
-		}
+			try{
+			KeyPair k= generateRSAKkeyPair();
+			byte[] encodedBytesPub = k.getPublic().getEncoded();
+			byte[] encodedBytesPriv = k.getPrivate().getEncoded();
+			String chiavePubblica = Base64.getEncoder().encodeToString(encodedBytesPub);
+			String chiavePrivata = Base64.getEncoder().encodeToString(encodedBytesPriv);
+      v.getFirstChild("chiavePubblica").setValue(chiavePubblica);
+      v.getFirstChild("chiavePrivata").setValue(chiavePrivata);
 
-    public static String splitKeysPriv(String keys){
-			String[] keysArray = keys.split("-");
-			String temp = keysArray[0];
-			return temp;
+		}catch(Exception e){
+			System.out.println(e);
 		}
+		return v;
+    }
 
-		public static String splitKeysPub(String keys){
-			String[] keysArray = keys.split("-");
-			String temp1 = keysArray[1];
-			return temp1;
-		}
+
+
 
     // Encrypt message
     public Value encrypt(Value request)
     {
       Value v= Value.create();
-      String stringE = request.getFirstChild("valoreE").strValue();
-      String stringN = request.getFirstChild("valoreN").strValue();
-      BigInteger e1 = new BigInteger(stringE);
-      BigInteger N1 = new BigInteger(stringN);
-      String messaggio = request.getFirstChild("msg").strValue();
-      byte[] bytesMessaggio = messaggio.getBytes();
-      byte[] tmp = (new BigInteger(bytesMessaggio)).modPow(e1, N1).toByteArray();
-      ByteArray byteArray= new ByteArray(tmp);
-      v.getFirstChild("risposta").setValue(byteArray);
+      String chiavePubblica = request.getFirstChild("chiavePub").strValue();
+      String message = request.getFirstChild("msg").strValue();
+      try{
+      byte[] chiaveByte= Base64.getDecoder().decode(chiavePubblica.getBytes());
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PublicKey publicKey = kf.generatePublic(new X509EncodedKeySpec(chiaveByte));
+      Cipher encryptCipher = Cipher.getInstance("RSA");
+      encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
+      byte[] cipherText = encryptCipher.doFinal(message.getBytes());
+      v.getFirstChild("okok").setValue(Base64.getEncoder().encodeToString(cipherText));
+    }catch(Exception e){
+      System.out.println(e);
+    }
       return v;
     }
 
     //Decrypt message
-    public String decrypt(Value request)
+    public Value decrypt(Value request)
     {
-      String stringD = request.getFirstChild("valoreD").strValue();
-      String stringN = request.getFirstChild("valoreN").strValue();
-      BigInteger d1 = new BigInteger(stringD);
-      BigInteger N1 = new BigInteger(stringN);
-      byte[] messCifrato = request.getFirstChild("msg").byteArrayValue().getBytes();
-      byte[] tmp1 = (new BigInteger(messCifrato)).modPow(d1, N1).toByteArray();
-      String tmpConverted = new String(tmp1);
-      return tmpConverted;
+      Value v= Value.create();
+      String chiavePrivata = request.getFirstChild("chiavePriv").strValue();
+      String message = request.getFirstChild("messaggioCifrato").strValue();
+      byte[] bytes=null;
+      Cipher decriptCipher = null;
+     try{
+      byte[] chiaveByte= Base64.getDecoder().decode(chiavePrivata.getBytes());
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PrivateKey privateKey = kf.generatePrivate(new PKCS8EncodedKeySpec(chiaveByte));
+      bytes = Base64.getDecoder().decode(message);
+      decriptCipher = Cipher.getInstance("RSA");
+      decriptCipher.init(Cipher.DECRYPT_MODE, privateKey);
+      v.getFirstChild("messaggioDecifrato").setValue(new String(decriptCipher.doFinal(bytes)));
+   }catch(Exception e){
+      System.out.println(e);
     }
+      return v;
+    }
+
+    public Value creaFirma(Value request){
+      Value v= Value.create();
+      String chiavePrivata = request.getFirstChild("privKey").strValue();
+      String message = request.getFirstChild("mex").strValue();
+      String firmaDig = null;
+      try{
+      byte[] chiaveByte= Base64.getDecoder().decode(chiavePrivata.getBytes());
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PrivateKey privateKey = kf.generatePrivate(new PKCS8EncodedKeySpec(chiaveByte));
+      Signature sign = Signature.getInstance("SHA256withRSA");
+      sign.initSign(privateKey);
+      byte[] bytes = message.getBytes();
+      sign.update(bytes);
+      byte[] signature = sign.sign();
+      firmaDig = Base64.getEncoder().encodeToString(signature);
+      v.getFirstChild("firmaDigitale").setValue(firmaDig);
+    }catch(Exception e){
+       System.out.println(e);
+     }
+      return v;
+    }
+
+    public Value controlloFirma(Value request){
+      Value v= Value.create();
+      String result=null;
+      String firma = request.getFirstChild("firma").strValue();
+      String chiavePubblica = request.getFirstChild("keyPub").strValue();
+      String mex = request.getFirstChild("messaggio").strValue();
+      try{
+      byte[] chiaveByte= Base64.getDecoder().decode(chiavePubblica.getBytes());
+      KeyFactory kf = KeyFactory.getInstance("RSA");
+      PublicKey publicKey = kf.generatePublic(new X509EncodedKeySpec(chiaveByte));
+      byte[] firmaByte= Base64.getDecoder().decode(firma);
+      Signature sign = Signature.getInstance("SHA256withRSA");
+      sign.initVerify(publicKey);
+      sign.update(mex.getBytes());
+        //Verifying the signature
+      boolean bool = sign.verify(firmaByte);
+        if(bool)
+          result="verificato";
+        else
+          result="fallito";
+      v.getFirstChild("risultato").setValue(result);
+    }catch(Exception e){
+         System.out.println(e);
+       }
+       return v;
   }
+}

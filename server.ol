@@ -37,7 +37,7 @@ main {
           global.listaNodi[i] << joinRequest
         }
     }] {
-        log@Server2Monitor(global.count + " Nome del nodo : "
+        log@Server2Monitor(global.count + ". Nome del nodo : "
         +global.listaNodi[i].nomeNodo + " - Numero della porta: "
         +global.listaNodi[i].numeroPorta)
       }
@@ -86,24 +86,6 @@ main {
       }]
 
 
-      [ addChat( request )( response ) {
-        if ( !is_defined( global.chat.( request.chat_name ) ) ) {
-            global.chat.( request.chat_name ) = true
-        }
-        ;
-        /* check if the chat already exists and the username is already registered*/
-        if ( !is_defined( global.chat.( request.chat_name ).users.( request.username ) )) {
-            global.chat.( request.chat_name ).users.( request.username ).location = request.location;
-            /* new is a jolie primitive for creating a fresh token */
-            token = new;
-            global.chat.( request.chat_name ).users.( request.username ).token = token;
-            /* token hashmap */
-            global.tokens.( token ).chat_name = request.chat_name;
-            global.tokens.( token ).username = request.username
-        }
-        ;
-        response.token = global.chat.( request.chat_name ).users.( request.username ).token
-    }]
 
 
     [ addNameChat( nomeChat ) ( esito ) {
@@ -134,37 +116,87 @@ main {
     } ]
 
 
-    [ sendMessage( request )( response ) {
-        /* validate token */
-        if ( is_defined( global.tokens.( request.token ) ) ) {
-            /* sending messages to all participants using dynamic binding */
-            chat_name = global.tokens.( request.token ).chat_name;
-            foreach( u : global.chat.( chat_name ).users ) {
-                /* output port dynamic rebinding */
-                Server2Nodo.location = global.chat.( chat_name ).users.( u ).location;
-                /* message sending */
-                if ( u != global.tokens.( request.token ).username ) {
-                  with( msg ) {
-                      .message = request.message;
-                      .chat_name = chat_name;
-                      .username = global.tokens.( request.token ).username
-                  };
-                  setMessage@Server2Nodo( msg )
-                }
-            }
-            //file.filename = chat_name+"/"+msg.chat_name + ".txt";*/
-            file.filename = msg.chat_name+".txt";
-            file.append = 1;
-            file.content = msg.username + ": " + msg.message+"\n";
-            writeFile@File( file )( void )
-        } else {
-            throw( TokenNotValid )
-        }
-    }]
 
     [ sendNomeGruppo( nomeGruppo )( listaPartecipantiGruppo ) {
       listaPartecipantiGruppo.numeroPorta << global.chat.( nomeGruppo ).location
     } ]
+
+
+    [ gestioneGruppo( gruppo ) ] {
+      i = #global.groupChat.name;
+      global.groupChat.name[i] = gruppo.nome;
+      for (j=0, j<#global.groupChat.name, j++){
+        if (global.groupChat.name[j] == gruppo.nome){
+          global.groupChat.name[j].port[#global.groupChat.name[j].port] = gruppo.porta
+        }
+      }
+    }
+
+    [ gestioneGruppo2( gruppo ) ] {
+      esiste = "false"
+      for (i=0, i<#global.groupChat.name, i++){
+        if (global.groupChat.name[i] == gruppo.nome){
+          for (j=0, j<#global.groupChat.name[i].port, j++){
+            if (global.groupChat.name[i].port[j] == gruppo.nome){
+              esiste = "true"
+            }
+          }
+          if (esiste=="false"){
+            global.groupChat.name[i].port[#global.groupChat.name[i].port] = gruppo.porta
+          }
+        }
+      }
+
+
+    /*  for (i=0, i<#global.groupChat.name, i++){
+        println@Console(global.groupChat.name[i])();
+          for (j=0, j<#global.groupChat.name[i].port, j++){
+            println@Console(global.groupChat.name[i].port[j])()
+          }
+      }*/
+    }
+
+
+
+    [ richiestaPorteGruppo( nomeChatGruppo ) ( porte ) {
+      for (i=0, i<#global.groupChat.name, i++){
+        if (global.groupChat.name[i] == nomeChatGruppo){
+          for (j=0, j<#global.groupChat.name[i].port, j++){
+            porte.numeroPortaGruppo[#porte.numeroPortaGruppo] = global.groupChat.name[i].port[j]
+          }
+        }
+      }
+    }]
+
+    [offline(notifica)]{
+      global.count++;
+      log@Server2Monitor(global.count+". "+notifica)
+    }
+
+    [uscitaGruppo(Dati)]{
+      for (i=0, i<#global.groupChat.name, i++){
+        if (global.groupChat.name[i] == Dati.nomeChat){
+          for (j=0, j<#global.groupChat.name[i].port, j++){
+            if(global.groupChat.name[i].port[j] == Dati.numeroPorta){
+              undef(global.groupChat.name[i].port[j])
+            }
+          }
+        }
+      }
+    }
+
+    [deleteNodo(Nodi)]{
+      for(i=0, i<#global.listaNodi.nomeNodo, i++){
+        if(global.listaNodi.nomeNodo[i] == Nodi.nomeNodo){
+          undef(global.listaNodi.nomeNodo[i])
+        }
+      }
+      for(i=0, i<#global.listaNodi.numeroPorta, i++){
+        if(global.listaNodi.numeroPorta[i] == Nodi.numeroPorta){
+          undef(global.listaNodi.numeroPorta[i])
+        }
+      }
+    }
 
 
 
