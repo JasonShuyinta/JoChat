@@ -17,33 +17,9 @@ type joinRequest: void {
     .chiavePub: string
 }
 
-type joinResponse: void {
-    .message?: string
-}
-/*
-type AddChatRequest: void {
-    .chat_name: string
-    .username: string
-    .location: string
-}
-type AddChatResponse: void {
-    .token: string
-}
-
-type ChatSendMessageRequest: void {
-    .token: string
-    .message: string
-}
-*/
-type SetMessageRequest: void {
-    .message: string
-    .chat_name: string
-    .username: string
-}
-
 type Dati:void{
-  .numeroPorta: string
-  .nomeChat: string
+    .numeroPorta: string
+    .nomeChat: string
 }
 
 type Info: void {
@@ -68,18 +44,18 @@ type listaPartecipanti: void {
 }
 
 type infoDestinatario: void {
-  .numeroPorta: string
-  .chiavePub: string
+    .numeroPorta: string
+    .chiavePub: string
 }
 
 
 type gruppo: void {
-  .nome: string
-  .porta: string
+    .nome: string
+    .porta: string
 }
 
 type porte: void {
-  .numeroPortaGruppo*: string
+    .numeroPortaGruppo*: string
 }
 
 type infoChatGruppo: void {
@@ -92,27 +68,26 @@ type infoChatGruppo: void {
 
 interface ServerInterface {
 RequestResponse:
-    join( joinRequest ) ( joinResponse ),
     getNodi( string ) ( string ),
-  //  addChat( AddChatRequest )( AddChatResponse ),
     addNameChat( string )( string ),
     checkEsistenzaGruppo( string ) ( string ),
     getInfoDestinatario( string )( infoDestinatario ),
     getChat( void )( string ),
     sendInfoPrivate( Info )( void ),
     sendNomeGruppo( string )( listaPartecipanti ),
-  //  sendMessage( ChatSendMessageRequest )( void ) throws TokenNotValid,
     richiestaPorteGruppo ( string ) (porte)
 OneWay:
+    join( joinRequest ),
     log(string),
-    setMessage( SetMessageRequest ),
     sendChat( string ),
     invioPrivato( Informazioni ),
     SaveKey( string ),
+    creaGruppo( gruppo ),
     gestioneGruppo( gruppo ),
-    gestioneGruppo2( gruppo ),
     invioChatGruppo( infoChatGruppo ),
+    sendNotifica(string),
     offline(string),
     uscitaGruppo(Dati),
-    deleteNodo(Nodi)
+    deleteNodo(Nodi),
+    stampaFile(infoChatGruppo)
 }

@@ -11,7 +11,7 @@ type cifraMsg: void{
 
 type pacchettoFirma: void{
   .privKey:string
-  .mex:string
+  .messaggio:string
 }
 
 type coppiaChiavi: void{
@@ -19,8 +19,8 @@ type coppiaChiavi: void{
   .chiavePrivata:string
 }
 
-type mexCifrato:void{
-  .okok:string
+type messaggioCifrato:void{
+  .messaggio:string
 }
 
 type firmaMessaggio:void{
@@ -30,7 +30,7 @@ type firmaMessaggio:void{
 interface PrivataInterface {
   RequestResponse:
   generatoreChiavi(void)(coppiaChiavi),
-  encrypt(cifraMsg)(mexCifrato),
+  encrypt(cifraMsg)(messaggioCifrato),
   creaFirma(pacchettoFirma)(firmaMessaggio)
 }
 
@@ -75,203 +75,144 @@ init
   loadEmbeddedService@Runtime( emb )()
 }
 
+//embedding del servizio Java
 embedded {
-    Java:     "lib.Privata" in Privata
+    Java: "lib.Privata" in Privata
 }
 
 
 main {
-    registerForInput@Console(  )(  );
-    request.nomeNodo = args[0];
-    request.numeroPorta = args[1];
+  registerForInput@Console(  )(  );
+  request.nomeNodo = args[0];
+  request.numeroPorta = args[1];
+
+  //controlla l'esistenza del nodo tramite le cartelle
+  exists@File( request.nomeNodo )( exists )
+
+  while(exists == true) {
+    println@Console( "Il nome inserito non è valido. Prova ad unserire un'altro nome: " )();
+    in(request.nomeNodo)
     exists@File( request.nomeNodo )( exists )
-    while(exists == true) {
-      println@Console( "Il nome inserito non è valido. Prova ad unserire un'altro nome: " )();
-      in(request.nomeNodo)
-      exists@File( request.nomeNodo )( exists )
+  }
+  //se il nodo non esiste, crea la sua cartella
+  mkdir@File( request.nomeNodo )( response );
+
+  //genera la chiave pubblica e la chiave privata per la la crittografia asimmetrica
+  //e la firma digitale
+  generatoreChiavi@Privata()(coppiaChiavi);
+  chiavePub = coppiaChiavi.chiavePubblica;
+  chiavePriv = coppiaChiavi.chiavePrivata;
+  request.chiavePub=chiavePub;
+
+  //imposta dinamicamente la location della porta del nodo
+  Nodo2Nodo.location = "socket://localhost:"+args[1];
+  SaveKey@Nodo2Nodo(chiavePriv)
+
+  //aggiungi il nodo appena creato alla lista dei nodi del server
+  join@Nodo2Server( request );
+  println@Console(  )(  );
+
+
+  while (opzione != "6") {
+    println@Console( "=====================================" )(  );
+    println@Console( "Premi (1) per visualizzare le chat di gruppo attive" )(  );
+    println@Console( "Premi (2) per visualizzare i nodi attivi" )(  );
+    println@Console( "Premi (3) per creare una chat di gruppo" )(  );
+    println@Console( "Premi (4) per accedere a una chat di gruppo" )(  );
+    println@Console( "Premi (5) per accedere a una chat privata" )(  );
+    println@Console( "Premi (6) per uscire" )(  );
+    in( opzione );
+
+    if( opzione != "1" && opzione != "2" && opzione != "3" && opzione != "4" && opzione != "5" && opzione != "6"   ) {
+      println@Console( "Il comando inserito non e' valido " )(  )
     }
-    mkdir@File( request.nomeNodo )( response );
+    else if ( opzione == "1") {
+      //"Premi 1 per visualizzare le chat attive"
+      println@Console( "Lista Chat Attive:" )(  )
+      getChat@Nodo2Server( )( lista )
+      println@Console( lista )(  )
+    }
 
-    //Server2Nodo.location="socket://localhost:"+request.numeroPorta+"/";
-
-
-
-    generatoreChiavi@Privata()(coppiaChiavi);
-    chiavePub = coppiaChiavi.chiavePubblica;
-    chiavePriv = coppiaChiavi.chiavePrivata;
-    request.chiavePub=chiavePub;
-    Nodo2Nodo.location = "socket://localhost:"+args[1];
-    SaveKey@Nodo2Nodo(chiavePriv)
-    join@Nodo2Server( request )( response );
-    println@Console( response )(  );
-
-    while (opzione != "6") {
-      println@Console( "=====================================" )(  );
-      println@Console( "Premi (1) per visualizzare le chat di gruppo attive" )(  );
-      println@Console( "Premi (2) per visualizzare i nodi attivi" )(  );
-      println@Console( "Premi (3) per creare una chat di gruppo" )(  );
-      println@Console( "Premi (4) per accedere a una chat di gruppo" )(  );
-      println@Console( "Premi (5) per accedere a una chat privata" )(  );
-      println@Console( "Premi (6) per uscire" )(  );
-      in( opzione );
-
-      if( opzione != "1" && opzione != "2" && opzione != "3" && opzione != "4" && opzione != "5" && opzione != "6"   )
-      {
-        println@Console( "Il comando inserito non e' valido " )(  )
-      }
-      else if ( opzione == "1")
-      {
-        //"Premi 1 per visualizzare le chat attive"
-        println@Console( "Lista Chat Attive:" )(  )
-        getChat@Nodo2Server( )( lista )
-        println@Console( lista )(  )
-}
-
-      //"Premi 2 per visualizzare i nodi attivi"
-      else if ( opzione == "2") {
-        getNodi@Nodo2Server( request.numeroPorta )( lista )
-        println@Console( "========================================" )(  )
-        println@Console( "Lista dei nodi attivi:" )(  );
-        println@Console( "" )(  );
-        println@Console( " Nome - Porta" )(  );
-        println@Console( lista )(  )
-      }
+    //"Premi 2 per visualizzare i nodi attivi"
+    else if ( opzione == "2") {
+      getNodi@Nodo2Server( request.numeroPorta )( lista )
+      println@Console( "========================================" )(  )
+      println@Console( "Lista dei nodi attivi:" )(  );
+      println@Console( "" )(  );
+      println@Console( " Nome - Porta" )(  );
+      println@Console( lista )(  )
+    }
 
 
+    //"Premi 3 per creare una chat di gruppo"
+    else if ( opzione == "3"){
+      println@Console( "Inserisci il nome della tua Chat " )(  );
+      in( nome );
 
+      esito=null;
 
-      //"Premi 3 per creare una chat di gruppo"
-      //inserire firma digitale
-      else if ( opzione == "3")
-      {
-        println@Console( "Inserisci il nome della tua Chat " )(  );
-        in( nome );
-
-        //controlla che il nome non sia gia preso
-        while(esito!="true") {
+      //controlla che il nome del gruppo sia  disponibile
+      while(esito!="true") {
         addNameChat@Nodo2Server( nome )( esito );
 
+        //Se il nome del gruppo inserito e' valido inseriscilo nell'albero dei gruppi
+        if( esito == "true") {
         gruppo.nome = nome;
         gruppo.porta = args[1];
-        gestioneGruppo@Nodo2Server(gruppo)
-
-
-        //Se il nome non esiste già continua...
-        if( esito == "true") {
+        creaGruppo@Nodo2Server(gruppo);
         sendChat@Nodo2Server( nome );
         println@Console( "Chat di gruppo '" + nome + "' attiva " )(  );
 
 
-        //scrivi una riga in modo che non sia mai vuoto
+        //Intestazione del file della chat di gruppo
         file.filename = nome+".txt";
         file.content = "Chat di gruppo: "+nome+"\n";
         file.append = 1;
         writeFile@File( file )( void );
 
-
+        //assegna la chiave privata al pacchetto per la firma digitale
         pacchettoFirma.privKey=chiavePriv;
 
-        println@Console( "Attendi che qualcuno si unisca al tuo gruppo prima di scrivere un messaggio" )(  );
+        println@Console( "Inserisci il messaggio : " )(  )
+        println@Console( "(per uscire dalla chat inviare '$')" )()
+        println@Console( "(per visualizzare i messaggi precedenti inviare '%')" )()
+        println@Console( "(N.B Non puoi scrivere un messaggio senza partecipanti)" )()
+
         in( message );
+
+        //il carattere "$" serve per uscire da questa sezione
         while( message != "$") {
 
+          //ottieni le porte dei membri del gruppo
           richiestaPorteGruppo@Nodo2Server(gruppo.nome)(porte);
 
-
-
+          //assegna dinamicamente la location della porta dei nodi membri del gruppo
           for (i=0, i<#porte.numeroPortaGruppo, i++){
+            //controllo per evitare l'auto-invio del messaggio
             if (porte.numeroPortaGruppo[i] != args[1]){
-            mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
-            Nodo2Nodo.location = mySocketLocation;
+              mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
+              Nodo2Nodo.location = mySocketLocation;
 
-          //leggi i messaggi precedenti
-          if( message == "%") {
-                println@Console( "===========================" )(  )
-                println@Console( "Messaggi precedenti:" )(  )
-                letturaFile.filename = nome +".txt";
-                readFile@File( letturaFile )( msgPrecedenti );
-                println@Console( msgPrecedenti )(  );
-                message = "***Lettura messaggi***";
-                println@Console( "============================" )(  )
-              }
-        pacchettoFirma.mex=message;
-        creaFirma@Privata(pacchettoFirma)(firmaMessaggio)
-        infoChatGruppo.nomeChat = gruppo.nome;
-        infoChatGruppo.mittente = args[0];
-        infoChatGruppo.messaggio = message;
-        infoChatGruppo.firma = firmaMessaggio.firmaDigitale;
-        infoChatGruppo.chiavePub = chiavePub;
-        invioChatGruppo@Nodo2Nodo( infoChatGruppo )
-      }
-    }
-        in ( message )
-  }
-  Dati.numeroPorta=args[1];
-  Dati.nomeChat=nome;
-  uscitaGruppo@Nodo2Server(Dati)
-} else {
-          println@Console( "Nome già usato, inseriscine un altro" )(  )
-          in( nome )
-        }
-      }
-    }
-
-    //"Premi 4 per accedere a una chat di gruppo"
-    else if ( opzione == "4") {
-      //inserire firma digitale
-      getChat@Nodo2Server(  )( lista )
-      if( lista == "Non e' presente nessuna chat attiva!") {
-        println@Console( lista )(  )
-      }
-      else {
-      println@Console( "Inserisci il nome della chat di gruppo a cui vuoi partecipare:" )(  )
-
-      in( nomeGruppo );
-      nomeChatGruppo = nomeGruppo;
-
-      checkEsistenzaGruppo@Nodo2Server( nomeChatGruppo )( esito )
-      if( esito == "false") {
-        println@Console( "Nome gruppo non esistente" )(  )
-      }
-      else
-      {
-        gruppo.nome = nomeChatGruppo;
-        gruppo.porta = args[1];
-        gestioneGruppo2@Nodo2Server(gruppo);
-
-
-        println@Console( "Chat: '" + nomeChatGruppo +"'")(  );
-        println@Console( "Scrivi un messaggio, o premi '%' per visualizzare i messaggi precedenti" )(  )
-
-
-        pacchettoFirma.privKey=chiavePriv;
-
-            in( message );
-            while ( message != "$") {
-
-
-              richiestaPorteGruppo@Nodo2Server(gruppo.nome)(porte);
-
-
-              for (i=0, i<#porte.numeroPortaGruppo, i++){
-                if (porte.numeroPortaGruppo[i] != args[1]){
-                mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
-                Nodo2Nodo.location = mySocketLocation;
-
-              //leggi messaggi precedenti
+              //visualizza i messaggi precedenti con il carattere "%"
               if( message == "%") {
-                println@Console( "===========================" )(  )
-                println@Console( "Messaggi precedenti:" )(  )
-                myFile.filename = nomeChatGruppo+".txt";
-                readFile@File( myFile )( contenuto );
-                println@Console( contenuto )(  );
-                message = "***Lettura messaggi***";
-                println@Console( "============================" )(  )
+                fileNome=nome+".txt";
+                exists@File( fileNome )( exists3 )
+                  if(exists3==true){
+                    println@Console( "===========================" )(  )
+                    println@Console( "Messaggi precedenti:" )(  )
+                    letturaFile1.filename = nome +".txt";
+                    readFile@File( letturaFile1 )( msgPrecedenti );
+                    println@Console( msgPrecedenti )(  );
+                    println@Console( "============================" )(  )
+                  }
+                i=#porte.numeroPortaGruppo
               }
-              //sendMessage@Nodo2Server( { .token = token, .message=message } )();
 
-              pacchettoFirma.mex=message;
+              //tramite chiave privata e messaggio crea la firma digitale
+              pacchettoFirma.messaggio=message;
               creaFirma@Privata(pacchettoFirma)(firmaMessaggio)
+
+              //invia il messaggio, allegando la firma digitale
               infoChatGruppo.nomeChat = gruppo.nome;
               infoChatGruppo.mittente = args[0];
               infoChatGruppo.messaggio = message;
@@ -280,21 +221,149 @@ main {
               invioChatGruppo@Nodo2Nodo( infoChatGruppo )
             }
           }
-              in( message )
+          //scrittura sul file dei messaggi
+          stampaFile@Nodo2Nodo(infoChatGruppo)
+          in( message )
+        }
+
+        //invio dati necessari al server per l'uscita dal gruppo
+        Dati.numeroPorta=args[1];
+        Dati.nomeChat=nome;
+        uscitaGruppo@Nodo2Server(Dati)
+
+        //ottiene le porte aggiornate dei membri del gruppo
+        richiestaPorteGruppo@Nodo2Server(nome)(porte);
+        for (i=0, i<#porte.numeroPortaGruppo, i++){
+          if (porte.numeroPortaGruppo[i] != args[1]){
+            mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
+            Nodo2Nodo.location = mySocketLocation
+
+            //invia una notifica ai membri rimanenti del gruppo
+            notifica="Il nodo "+ args[0]+" ha abbandonato il gruppo "+nomeChatGruppo;
+            sendNotifica@Nodo2Nodo(notifica)
             }
-            Dati.numeroPorta=args[1];
-            Dati.nomeChat=nomeChatGruppo;
-            uscitaGruppo@Nodo2Server(Dati)
+          }
+        } else {
+          println@Console( "ATTENZIONE: Nome già usato, inseriscine un altro" )(  )
+          in( nome )
+        }
+      }
+    }
+
+    //"Premi 4 per accedere a una chat di gruppo"
+    else if ( opzione == "4") {
+      getChat@Nodo2Server(  )( lista )
+      if( lista == "Non e' presente nessuna chat attiva!") {
+        println@Console( lista )(  )
+      }
+      else {
+        println@Console( "Inserisci il nome della chat di gruppo a cui vuoi partecipare:" )(  )
+
+        in( nomeGruppo );
+        nomeChatGruppo = nomeGruppo;
+
+        checkEsistenzaGruppo@Nodo2Server( nomeChatGruppo )( esito )
+        if( esito == "false") {
+          println@Console( "Nome gruppo non esistente" )(  )
+        }
+        else {
+          //aggiunta del nodo all'interno dell'albero che gestisce le chat di gruppo
+          gruppo.nome = nomeChatGruppo;
+          gruppo.porta = args[1];
+          gestioneGruppo@Nodo2Server(gruppo);
+          //recupera le porte dei nodi membri del gruppo
+          richiestaPorteGruppo@Nodo2Server(nomeChatGruppo)(porte)
+          //setta dinamicamente la location delle porte dei membri del gruppo
+          for (i=0, i<#porte.numeroPortaGruppo, i++){
+            if (porte.numeroPortaGruppo[i] != args[1]){
+              mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
+              Nodo2Nodo.location = mySocketLocation
+              //notifica l'entrata di un nuovo nodo nel gruppo
+              notifica="Il nodo "+ args[0]+" e' entrato nel gruppo "+nomeChatGruppo;
+              sendNotifica@Nodo2Nodo(notifica)
+            }
+          }
+
+          println@Console( "Chat: '" + nomeChatGruppo +"'")(  );
+          println@Console( "Inserisci il messaggio : " )(  )
+          println@Console( "(per uscire dalla chat inviare '$')" )()
+          println@Console( "(per visualizzare i messaggi precedenti inviare '%')" )()
+          println@Console( "(N.B Non puoi scrivere un messaggio senza partecipanti)" )()
+
+          //assegna la chiave privata al pacchetto per la firma digitale
+          pacchettoFirma.privKey=chiavePriv;
+          in( message );
+
+          //il carattere "$" permette l'uscita del gruppo
+          while ( message != "$") {
+
+            //ottieni le porte dei membri del gruppo
+            richiestaPorteGruppo@Nodo2Server(gruppo.nome)(porte);
+
+            //setta dinamicamente la location delle porte dei membri del gruppo
+            for (i=0, i<#porte.numeroPortaGruppo, i++){
+              if (porte.numeroPortaGruppo[i] != args[1]){
+                mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
+                Nodo2Nodo.location = mySocketLocation;
+
+                //visualizza messaggi precedenti
+                if( message == "%") {
+                  fileNomeGruppo=nomeGruppo+".txt";
+                  exists@File( fileNomeGruppo )( exists4 )
+                    if(exists4==true){
+                      println@Console( "===========================" )(  )
+                      println@Console( "Messaggi precedenti:" )(  )
+                      letturaFile2.filename = nomeGruppo +".txt";
+                      readFile@File( letturaFile2 )( msgPrecedenti );
+                      println@Console( msgPrecedenti )(  );
+                      println@Console( "============================" )(  )
+                    }
+                  i=#porte.numeroPortaGruppo
+                }
+
+                //allega il messaggio assieme alla chiave privata per la firma digitale
+                pacchettoFirma.messaggio=message;
+                creaFirma@Privata(pacchettoFirma)(firmaMessaggio)
+
+                //invia messaggio con firma digitale
+                infoChatGruppo.nomeChat = gruppo.nome;
+                infoChatGruppo.mittente = args[0];
+                infoChatGruppo.messaggio = message;
+                infoChatGruppo.firma = firmaMessaggio.firmaDigitale;
+                infoChatGruppo.chiavePub = chiavePub;
+                invioChatGruppo@Nodo2Nodo( infoChatGruppo )
+              }
+            }
+            stampaFile@Nodo2Nodo(infoChatGruppo)
+            in( message )
+          }
+
+          //gestisci l'uscita dal gruppo
+          Dati.numeroPorta=args[1];
+          Dati.nomeChat=nomeChatGruppo;
+          uscitaGruppo@Nodo2Server(Dati);
+
+          //ottieni le porte dei membri del gruppo
+          richiestaPorteGruppo@Nodo2Server(nomeChatGruppo)(porte);
+          for (i=0, i<#porte.numeroPortaGruppo, i++){
+            if (porte.numeroPortaGruppo[i] != args[1]){
+              //setta dinamicamente la locatione delle porte dei membri del gruppo
+              mySocketLocation = "socket://localhost:"+porte.numeroPortaGruppo[i];
+              Nodo2Nodo.location = mySocketLocation
+              //invia una notifica ai membri rimanenti
+              notifica="Il nodo "+ args[0]+" ha abbandonato il gruppo "+nomeChatGruppo;
+              sendNotifica@Nodo2Nodo(notifica)
+            }
           }
         }
       }
+    }
 
-    //Chat privata
-    //sovrascrivere i file.txt e decidere se lasciare cosi oppure comunicare tramite porte
-    //aggiungere crittografia/decrittografia
+    //Chat privata tra due nodi
     else if ( opzione == "5") {
       println@Console( "Inserisci il nome del nodo con cui vuoi comunicare: " )(  )
       in( nomeNodoDestinatario )
+      //controllo l'esistenza del nodo tramite le cartelle
       exists@File( nomeNodoDestinatario )( exists )
       while(exists == false) {
         println@Console( "Nome inserito errato, inserisci il nome corretto del destinatario:" )(  );
@@ -302,72 +371,76 @@ main {
         exists@File( nomeNodoDestinatario )( exists )
       };
 
+      //ottieni le informazioni necessarie per chattare privatamente con un nodo
+      getInfoDestinatario@Nodo2Server( nomeNodoDestinatario )( infoDestinatario );
 
+      //ottieni la chiave pubblica del destinatario per la cifratura del messaggio
+      cifraMsg.chiavePub=infoDestinatario.chiavePub;
 
-        //abbiamo ottenuto la porta e la chiave pubblica
-        getInfoDestinatario@Nodo2Server( nomeNodoDestinatario )( infoDestinatario );
-        //println@Console( infoDestinatario.chiavePub )(  );
-        //println@Console( infoDestinatario.numeroPorta )(  )
-        //fine
+      println@Console( "Inserisci il messaggio : " )(  )
+      println@Console( "(per uscire dalla chat inviare '$')" )()
+      println@Console( "(per visualizzare i messaggi precedenti inviare '%')" )()
 
-        cifraMsg.chiavePub=infoDestinatario.chiavePub;
+      //setta dinamicamente la location della porta del destinatario
+      mySocketLocation = "socket://localhost:"+infoDestinatario.numeroPorta;
+      Nodo2Nodo.location = mySocketLocation;
 
-        println@Console( "Inserisci il messaggio : " )(  )
-        println@Console( "(per uscire dalla chat inviare '$')" )()
-        println@Console( "(per visualizzare i messaggi precedenti inviare '%')" )()
+      in( messaggio )
 
-        mySocketLocation = "socket://localhost:"+infoDestinatario.numeroPorta;
-        Nodo2Nodo.location = mySocketLocation;
+      while ( messaggio != "$") {
+        cifraMsg.msg=messaggio;
 
-        in( messaggio )
-
-        while ( messaggio != "$") {
-          cifraMsg.msg=messaggio;
-
-          if( messaggio == "%") {
-            path1 = args[0] + "/" + args[0] +"-"+nomeNodoDestinatario+".txt"
-            path2 = args[0] + "/" + nomeNodoDestinatario + "-"+args[0]+".txt"
-            exists@File( path1 )( exists1 )
-            exists@File( path2 )( exists2 )
-            if( exists1 == true ) {
-              println@Console( "===========================" )(  )
-              println@Console( "Messaggi precedenti:" )(  )
-              filePrivato1.filename = path1;
-              readFile@File( filePrivato1 )( contenuto );
-              println@Console( contenuto )(  );
-              println@Console( "============================" )(  )
-            }
-            else if( exists2 == true ) {
-              println@Console( "===========================" )(  )
-              println@Console( "Messaggi precedenti:" )(  )
-              filePrivato2.filename = path2;
-              readFile@File( filePrivato2 )( contenuto );
-              println@Console( contenuto )(  );
-              println@Console( "============================" )(  )
-            }
-            else
-            {
-              println@Console( "===========================" )(  )
-              println@Console( "Non hai mai avuto una chat privata con "+nomeNodoDestinatario )(  )
-              println@Console( "===========================" )(  )
-            }
+        //visualizza i messaggi precedenti della chat
+        if( messaggio == "%") {
+          path1 = args[0] + "/" + args[0] +"-"+nomeNodoDestinatario+".txt"
+          path2 = args[0] + "/" + nomeNodoDestinatario + "-"+args[0]+".txt"
+          exists@File( path1 )( exists1 )
+          exists@File( path2 )( exists2 )
+          if( exists1 == true ) {
+            println@Console( "===========================" )(  )
+            println@Console( "Messaggi precedenti:" )(  )
+            filePrivato1.filename = path1;
+            readFile@File( filePrivato1 )( contenuto );
+            println@Console( contenuto )(  );
+            println@Console( "============================" )(  )
           }
-
-          encrypt@Privata(cifraMsg)(mexCifrato);
-          informazioni.nomeMittente = args[0];                        // nome del mittente
-          informazioni.nomeDestinatario = nomeNodoDestinatario;       // nome del destinatario
-          informazioni.msg=mexCifrato.okok;
-          invioPrivato@Nodo2Nodo( informazioni );
-          in( messaggio )
+          else if( exists2 == true ) {
+            println@Console( "===========================" )(  )
+            println@Console( "Messaggi precedenti:" )(  )
+            filePrivato2.filename = path2;
+            readFile@File( filePrivato2 )( contenuto );
+            println@Console( contenuto )(  );
+            println@Console( "============================" )(  )
+          }
+          else{
+            println@Console( "===========================" )(  )
+            println@Console( "Non hai mai avuto una chat privata con "+nomeNodoDestinatario )(  )
+            println@Console( "===========================" )(  )
+          }
         }
+
+        //cripta il messaggio tramite chiave pubblica
+        encrypt@Privata(cifraMsg)(messaggioCifrato);
+
+        //invio del messaggio criptato
+        informazioni.nomeMittente = args[0];
+        informazioni.nomeDestinatario = nomeNodoDestinatario;
+        informazioni.msg=messaggioCifrato.messaggio;
+        invioPrivato@Nodo2Nodo( informazioni );
+        in( messaggio )
+      }
     }
   }
+  //se l'utente digita "6" elimina la cartella associata al nodo
   deleteDir@File(args[0])(response);
+
+  //elimina il nodo dalla lista dei nodi
   Nodi.nomeNodo=args[0];
   Nodi.numeroPorta=args[1];
   deleteNodo@Nodo2Server(Nodi);
   if (response == true){
     println@Console("Ciao "+args[0]+": hai abbandonato la rete.")()
+    //invia notifica al monitor
     offline@Nodo2Server("L'utente " + args[0] + " ha abbandonato la rete!")
   }
 }

@@ -67,7 +67,7 @@ public class Privata extends JavaService
       Cipher encryptCipher = Cipher.getInstance("RSA");
       encryptCipher.init(Cipher.ENCRYPT_MODE, publicKey);
       byte[] cipherText = encryptCipher.doFinal(message.getBytes());
-      v.getFirstChild("okok").setValue(Base64.getEncoder().encodeToString(cipherText));
+      v.getFirstChild("messaggio").setValue(Base64.getEncoder().encodeToString(cipherText));
     }catch(Exception e){
       System.out.println(e);
     }
@@ -99,7 +99,7 @@ public class Privata extends JavaService
     public Value creaFirma(Value request){
       Value v= Value.create();
       String chiavePrivata = request.getFirstChild("privKey").strValue();
-      String message = request.getFirstChild("mex").strValue();
+      String message = request.getFirstChild("messaggio").strValue();
       String firmaDig = null;
       try{
       byte[] chiaveByte= Base64.getDecoder().decode(chiavePrivata.getBytes());
