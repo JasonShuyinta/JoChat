@@ -1,9 +1,0 @@
-Chat di gruppo: testChat
-A:ciao 
-A:come
-A:stai
-B:ben 
-B:tu
-A:stai
-A:stai
-A:stai
