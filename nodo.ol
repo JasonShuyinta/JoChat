@@ -59,11 +59,11 @@ outputPort Privata {
 init
 {
   install(
-    FileNotFound => println@Console("Specify a valid log file or create it before launching the Monitor. The file already exists.")()
+    FileNotFound => println@Console("Parametri di input non corretti")()
   )
   if (#args != 2){
     println@Console( "Inserisci: <nome nodo> <numeroPorta>" )()
-    throw( Error )
+    throw( FileNotFound )
   }
 
   //embedding dinamico del servizio nodo_service.ol

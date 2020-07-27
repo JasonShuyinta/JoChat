@@ -28,11 +28,6 @@ type Info: void {
     .usernameMittente: string
 }
 
-type Messaggio: void {
-    .messaggio: string
-    .username: string
-}
-
 type Informazioni: void {
     .nomeMittente: string
     .nomeDestinatario: string
