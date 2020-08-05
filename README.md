@@ -45,10 +45,5 @@ jolie nodo.ol MarcoRossi 9010
 
 (Per creare N nodi, aprire N terminali e ripetere N volte il comando sopraccitato.)
 
-##Autori
-**Jason Shuyinta**
-**Keran Jegasothy**
-**Giovanni Vitale**
-**Hajar Berdouzi**
-**Tulak Mozammel**
+
 
