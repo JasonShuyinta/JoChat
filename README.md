@@ -1,6 +1,6 @@
 <div align="center"><img src="logo/jo.png" width="175" height="150" /></div>
 
-# JoChat :computer: :speech_balloon:
+# JoChat :computer: :speech_balloon:  (University of Bologna, IT)
 
 **_JoChat_** è un sistema di messaggistica istantanea ad architettura Peer-2-Peer di tipo **decentralizzata ibrida**. I nodi, che fanno parte della rete,
 riescono a comunicare tra loro grazie alle informazioni comunicate dal
