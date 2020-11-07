@@ -49,7 +49,11 @@ jolie nodo.ol MarcoRossi 9010
 **Autori**: 
 
 Jason Shuyinta
+
 Keran Jegasothy
+
 Tulak Mozammel
+
 Hajar Berdouzi 
+
 Giovanni Vitale
